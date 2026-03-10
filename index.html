@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saffron Smart Farming Dashboard</title>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  
+  <div class="dashboard">
+    <!-- Header -->
+    <header class="navbar">
+      <div class="logo">
+        <i class="fa-solid fa-leaf"></i>
+        <h1>SaffronAI</h1>
+      </div>
+      <div class="status-indicator">
+        <div class="dot" id="connection-dot"></div>
+        <span id="connection-status">Connecting...</span>
+      </div>
+    </header>
+
+    <main class="content">
+      
+      <!-- Top Overview Cards -->
+      <section class="metrics-grid">
+        
+        <div class="metric-card">
+          <div class="metric-icon temp">
+            <i class="fa-solid fa-temperature-half"></i>
+          </div>
+          <div class="metric-data">
+            <h3>Temperature</h3>
+            <p class="value"><span id="val-temp">--</span>°C</p>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon hum">
+            <i class="fa-solid fa-droplet"></i>
+          </div>
+          <div class="metric-data">
+            <h3>Humidity</h3>
+            <p class="value"><span id="val-hum">--</span>%</p>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon moist">
+            <i class="fa-solid fa-seedling"></i>
+          </div>
+          <div class="metric-data">
+            <h3>Soil Moisture</h3>
+            <p class="value"><span id="val-moist">--</span>%</p>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon air">
+            <i class="fa-solid fa-wind"></i>
+          </div>
+          <div class="metric-data">
+            <h3>Air Quality</h3>
+            <p class="value"><span id="val-air">--</span></p>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon light">
+            <i class="fa-solid fa-sun"></i>
+          </div>
+          <div class="metric-data">
+            <h3>Light Level</h3>
+            <p class="value"><span id="val-light">--</span></p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Main Layout: Charts & Controls -->
+      <div class="main-grid">
+        
+        <!-- Left Column: Charts -->
+        <section class="charts-section">
+          <h2>Environment Trends</h2>
+          <div class="canvas-wrapper">
+            <canvas id="envChart"></canvas>
+          </div>
+        </section>
+
+        <!-- Right Column: Controls -->
+        <section class="controls-section">
+          <h2>Device Control Panel</h2>
+          
+          <div class="control-card control-mode">
+            <div class="control-header">
+              <h3>System Mode</h3>
+              <p>Override automated limits</p>
+            </div>
+            <div class="toggle-switch">
+              <span class="label">MANUAL</span>
+              <label class="switch">
+                <input type="checkbox" id="mode-toggle">
+                <span class="slider round"></span>
+              </label>
+              <span class="label">AUTO</span>
+            </div>
+          </div>
+
+          <div class="control-card actuators" id="manual-controls">
+            
+            <div class="control-item">
+              <div class="control-info">
+                <i class="fa-solid fa-cloud-showers-water"></i>
+                <span>Mist Maker</span>
+              </div>
+              <button id="btn-mist" class="state-btn off">OFF</button>
+            </div>
+
+            <div class="control-item">
+              <div class="control-info">
+                <i class="fa-solid fa-fan"></i>
+                <span>Cooling Fan</span>
+              </div>
+              <button id="btn-fan" class="state-btn off">OFF</button>
+            </div>
+
+            <div class="control-item slider-item">
+              <div class="control-info">
+                <i class="fa-solid fa-lightbulb"></i>
+                <span>Grow Lights <span id="light-val-display">(0)</span></span>
+              </div>
+              <input type="range" id="light-slider" min="0" max="255" value="0">
+            </div>
+            
+            <!-- Update Button -->
+            <button id="btn-update-db" class="primary-btn">Sync Control State</button>
+          </div>
+          
+          <!-- Disabled Overlay -->
+          <div id="auto-overlay" class="disabled-overlay hidden">
+            <div class="overlay-content">
+              <i class="fa-solid fa-robot" style="font-size: 2rem; margin-bottom: 10px;"></i>
+              <p>Devices controlled automatically by sensors.</p>
+              <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 5px;">Switch to MANUAL to override.</p>
+            </div>
+          </div>
+
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Custom App Logic -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
