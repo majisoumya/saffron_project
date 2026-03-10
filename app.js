@@ -24,7 +24,6 @@ const btnMist = document.getElementById('btn-mist');
 const btnFan = document.getElementById('btn-fan');
 const lightSlider = document.getElementById('light-slider');
 const lightDisplay = document.getElementById('light-val-display');
-const btnUpdateDB = document.getElementById('btn-update-db');
 const autoOverlay = document.getElementById('auto-overlay');
 
 // Local State
@@ -45,7 +44,7 @@ const maxDataPoints = 20; // Keep chart clean
 function initChart() {
   Chart.defaults.color = '#94a3b8';
   Chart.defaults.font.family = 'Inter';
-  
+
   envChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -95,8 +94,8 @@ function initChart() {
 }
 
 function updateChart(timestamp, temp, hum, moist) {
-  const timeLabel = new Date(timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-  
+  const timeLabel = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
   envChart.data.labels.push(timeLabel);
   envChart.data.datasets[0].data.push(temp);
   envChart.data.datasets[1].data.push(hum);
@@ -109,7 +108,7 @@ function updateChart(timestamp, temp, hum, moist) {
     envChart.data.datasets[1].data.shift();
     envChart.data.datasets[2].data.shift();
   }
-  
+
   envChart.update();
 }
 
@@ -129,7 +128,7 @@ async function fetchLatestSensorData() {
     if (data && data.length > 0) {
       // Data is descending. For chart, we want oldest first (ascending)
       const chartData = [...data].reverse();
-      
+
       // Clear existing chart data before rendering history
       envChart.data.labels = [];
       envChart.data.datasets.forEach(ds => ds.data = []);
@@ -166,7 +165,7 @@ async function fetchLatestControlState() {
 
     if (data && data.length > 0) {
       const state = data[0];
-      
+
       // Update local state
       uiState = {
         mode: state.mode,
@@ -174,7 +173,7 @@ async function fetchLatestControlState() {
         cooling_fan: state.cooling_fan,
         light_intensity: state.light_intensity
       };
-      
+
       // Update UI
       syncUIWithState();
     }
@@ -190,7 +189,7 @@ function syncUIWithState() {
   // Mode switch
   const isAuto = (uiState.mode === 'AUTO');
   modeToggle.checked = !isAuto; // Checkbox checked = MANUAL based on our UI label
-  
+
   if (isAuto) {
     autoOverlay.classList.remove('hidden');
   } else {
@@ -224,16 +223,19 @@ modeToggle.addEventListener('change', (e) => {
   } else {
     autoOverlay.classList.add('hidden');
   }
+  syncStateToDB();
 });
 
 btnMist.addEventListener('click', () => {
   uiState.mist_maker = !uiState.mist_maker;
   updateToggleButton(btnMist, uiState.mist_maker);
+  syncStateToDB();
 });
 
 btnFan.addEventListener('click', () => {
   uiState.cooling_fan = !uiState.cooling_fan;
   updateToggleButton(btnFan, uiState.cooling_fan);
+  syncStateToDB();
 });
 
 lightSlider.addEventListener('input', (e) => {
@@ -241,50 +243,31 @@ lightSlider.addEventListener('input', (e) => {
   lightDisplay.innerText = `(${uiState.light_intensity})`;
 });
 
-// Write to DB when "Sync" button is clicked
-btnUpdateDB.addEventListener('click', async () => {
-  const originalText = btnUpdateDB.innerText;
-  btnUpdateDB.innerText = "Syncing...";
-  btnUpdateDB.style.opacity = '0.7';
+lightSlider.addEventListener('change', () => {
+  syncStateToDB();
+});
 
+// Write to DB instantly
+async function syncStateToDB() {
   try {
     const { error } = await supabase
       .from('device_control')
       .insert([
-        { 
+        {
           mode: uiState.mode,
           mist_maker: uiState.mist_maker,
           cooling_fan: uiState.cooling_fan,
           light_intensity: uiState.light_intensity
         }
-      ]); // Appends a new latest row that ESP32 will pick up
+      ]);
 
     if (error) throw error;
-    
-    // Quick success animation
-    btnUpdateDB.innerText = "Synced! ✓";
-    btnUpdateDB.style.background = "var(--success)";
-    
-    setTimeout(() => {
-      btnUpdateDB.innerText = originalText;
-      btnUpdateDB.style.background = "var(--primary)";
-      btnUpdateDB.style.opacity = '1';
-    }, 2000);
-
+    console.log("State synced to Supabase successfully.");
   } catch (err) {
     console.error("DB Update Error", err);
-    alert("Failed to sync device controls. Check console.");
-    
-    btnUpdateDB.innerText = "Error!";
-    btnUpdateDB.style.background = "var(--danger)";
-    
-    setTimeout(() => {
-      btnUpdateDB.innerText = originalText;
-      btnUpdateDB.style.background = "var(--primary)";
-      btnUpdateDB.style.opacity = '1';
-    }, 2000);
+    alert("Failed to sync device controls. If using Anon key, please ensure RLS allows anonymous inserts in Supabase.");
   }
-});
+}
 
 // ==========================================
 // 6. Real-time Subscriptions (WebSockets)
@@ -294,7 +277,7 @@ function setupRealtime() {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data' }, (payload) => {
       // New sensor logic arrived
       const newRow = payload.new;
-      
+
       // Update Top Metrics UI
       valTemp.innerText = newRow.temperature.toFixed(1);
       valHum.innerText = newRow.humidity.toFixed(1);
@@ -308,18 +291,18 @@ function setupRealtime() {
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'device_control' }, (payload) => {
       // Update UI if a change was made elsewhere (e.g. by another dashboard user)
       const state = payload.new;
-      
+
       uiState = {
         mode: state.mode,
         mist_maker: state.mist_maker,
         cooling_fan: state.cooling_fan,
         light_intensity: state.light_intensity
       };
-      
+
       syncUIWithState();
     })
     .subscribe((status) => {
-      if(status === 'SUBSCRIBED') {
+      if (status === 'SUBSCRIBED') {
         setConnectionStatus(true);
       }
     });

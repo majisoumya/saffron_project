@@ -4,7 +4,8 @@
   --card-bg: #273549;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
-  --primary: #8b5cf6; /* Saffron purple vibe */
+  --primary: #8b5cf6;
+  /* Saffron purple vibe */
   --primary-hover: #7c3aed;
   --accent-temp: #ef4444;
   --accent-hum: #3b82f6;
@@ -28,6 +29,48 @@ body {
   background-color: var(--bg-color);
   color: var(--text-main);
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* --- Global Animations --- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseIcon {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes glowPulse {
+  0% {
+    box-shadow: 0 0 5px var(--success);
+  }
+
+  50% {
+    box-shadow: 0 0 15px var(--success);
+  }
+
+  100% {
+    box-shadow: 0 0 5px var(--success);
+  }
 }
 
 .dashboard {
@@ -46,6 +89,7 @@ body {
   border-radius: var(--radius);
   margin-bottom: 30px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  animation: fadeInUp 0.5s ease-out forwards;
 }
 
 .logo {
@@ -84,8 +128,15 @@ body {
   background-color: var(--text-muted);
 }
 
-.dot.connected { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
-.dot.error { background-color: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.dot.connected {
+  background-color: var(--success);
+  animation: glowPulse 2s infinite;
+}
+
+.dot.error {
+  background-color: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+}
 
 /* --- Metrics Grid --- */
 .metrics-grid {
@@ -103,11 +154,39 @@ body {
   align-items: center;
   gap: 15px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  opacity: 0;
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Stagger metric cards entrance */
+.metric-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.metric-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.metric-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.metric-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+
+.metric-card:nth-child(5) {
+  animation-delay: 0.5s;
 }
 
 .metric-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.metric-card:hover .metric-icon {
+  animation: pulseIcon 1s infinite;
 }
 
 .metric-icon {
@@ -120,11 +199,30 @@ body {
   font-size: 20px;
 }
 
-.metric-icon.temp { background: rgba(239, 68, 68, 0.15); color: var(--accent-temp); }
-.metric-icon.hum { background: rgba(59, 130, 246, 0.15); color: var(--accent-hum); }
-.metric-icon.moist { background: rgba(16, 185, 129, 0.15); color: var(--accent-moist); }
-.metric-icon.air { background: rgba(245, 158, 11, 0.15); color: var(--accent-air); }
-.metric-icon.light { background: rgba(252, 211, 77, 0.15); color: var(--accent-light); }
+.metric-icon.temp {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-temp);
+}
+
+.metric-icon.hum {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-hum);
+}
+
+.metric-icon.moist {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-moist);
+}
+
+.metric-icon.air {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-air);
+}
+
+.metric-icon.light {
+  background: rgba(252, 211, 77, 0.15);
+  color: var(--accent-light);
+}
 
 .metric-data h3 {
   font-size: 14px;
@@ -152,11 +250,22 @@ body {
 }
 
 /* Charts */
-.charts-section, .controls-section {
+.charts-section {
   background-color: var(--panel-bg);
   border-radius: var(--radius);
   padding: 25px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out 0.4s forwards;
+}
+
+.controls-section {
+  background-color: var(--panel-bg);
+  border-radius: var(--radius);
+  padding: 25px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  animation: fadeInUp 0.6s ease-out 0.5s forwards;
 }
 
 h2 {
@@ -233,7 +342,10 @@ h2 {
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: var(--border);
   transition: .4s;
 }
@@ -249,11 +361,11 @@ h2 {
   transition: .4s;
 }
 
-input:checked + .slider {
+input:checked+.slider {
   background-color: var(--primary);
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
   transform: translateX(24px);
 }
 
@@ -280,7 +392,9 @@ input:checked + .slider:before {
   border-bottom: 1px solid var(--border);
 }
 
-.control-item:last-of-type { border-bottom: none; }
+.control-item:last-of-type {
+  border-bottom: none;
+}
 
 .control-info {
   display: flex;
@@ -333,7 +447,9 @@ input[type=range] {
   background: transparent;
 }
 
-input[type=range]:focus { outline: none; }
+input[type=range]:focus {
+  outline: none;
+}
 
 input[type=range]::-webkit-slider-runnable-track {
   width: 100%;
@@ -353,29 +469,13 @@ input[type=range]::-webkit-slider-thumb {
   margin-top: -6px;
 }
 
-/* Sync Button */
-.primary-btn {
-  width: 100%;
-  padding: 12px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius);
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  margin-top: 10px;
-}
-
-.primary-btn:hover {
-  background: var(--primary-hover);
-}
+/* Removed Sync Button code since it's deleted from HTML */
 
 /* Disabled Overlay for Auto Mode */
 .disabled-overlay {
   position: absolute;
-  top: 100px; /* Below the mode toggle */
+  top: 100px;
+  /* Below the mode toggle */
   left: 20px;
   right: 20px;
   bottom: 20px;

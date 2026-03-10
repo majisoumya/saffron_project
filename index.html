@@ -1,23 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Saffron Smart Farming Dashboard</title>
-  
+
   <!-- CSS -->
   <link rel="stylesheet" href="style.css">
-  
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
+
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
-  
+
   <div class="dashboard">
     <!-- Header -->
     <header class="navbar">
@@ -32,10 +34,10 @@
     </header>
 
     <main class="content">
-      
+
       <!-- Top Overview Cards -->
       <section class="metrics-grid">
-        
+
         <div class="metric-card">
           <div class="metric-icon temp">
             <i class="fa-solid fa-temperature-half"></i>
@@ -90,7 +92,7 @@
 
       <!-- Main Layout: Charts & Controls -->
       <div class="main-grid">
-        
+
         <!-- Left Column: Charts -->
         <section class="charts-section">
           <h2>Environment Trends</h2>
@@ -102,7 +104,7 @@
         <!-- Right Column: Controls -->
         <section class="controls-section">
           <h2>Device Control Panel</h2>
-          
+
           <div class="control-card control-mode">
             <div class="control-header">
               <h3>System Mode</h3>
@@ -119,7 +121,7 @@
           </div>
 
           <div class="control-card actuators" id="manual-controls">
-            
+
             <div class="control-item">
               <div class="control-info">
                 <i class="fa-solid fa-cloud-showers-water"></i>
@@ -143,11 +145,8 @@
               </div>
               <input type="range" id="light-slider" min="0" max="255" value="0">
             </div>
-            
-            <!-- Update Button -->
-            <button id="btn-update-db" class="primary-btn">Sync Control State</button>
+
           </div>
-          
           <!-- Disabled Overlay -->
           <div id="auto-overlay" class="disabled-overlay hidden">
             <div class="overlay-content">
@@ -165,8 +164,9 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
+
   <!-- Custom App Logic -->
   <script type="module" src="app.js"></script>
 </body>
+
 </html>
