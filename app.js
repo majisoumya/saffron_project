@@ -11,12 +11,34 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const connDot = document.getElementById('connection-dot');
 const connStatus = document.getElementById('connection-status');
 
-// Metrics
+// Metrics (SVG Fills)
+const fillTemp = document.querySelector('.temp-fill');
+const fillHum = document.querySelector('.hum-fill');
+const fillMoist = document.querySelector('.moist-fill');
+const fillAir = document.querySelector('.air-fill');
+const fillLight = document.querySelector('.light-fill');
+
+// Metrics (Values)
 const valTemp = document.getElementById('val-temp');
 const valHum = document.getElementById('val-hum');
 const valMoist = document.getElementById('val-moist');
 const valAir = document.getElementById('val-air');
 const valLight = document.getElementById('val-light');
+
+// Helper to set SVG gauge progress (0 to 1 scaling)
+// Our SVG dasharray is ~141.37 for a half circle (pi * r), but set to 200 in CSS for simplicity
+// The actual stroke length for A 45 45 is Math.PI * 45 = 141.37
+const GAUGE_LENGTH = 142;
+
+function setGaugeProgress(element, value, max) {
+  if (!element) return;
+  // clamp value
+  let pct = Math.min(Math.max(value / max, 0), 1);
+  // calculate offset (142 is empty, 0 is full)
+  let offset = GAUGE_LENGTH - (pct * GAUGE_LENGTH);
+  element.style.strokeDasharray = GAUGE_LENGTH;
+  element.style.strokeDashoffset = offset;
+}
 
 // Controls
 const modeToggle = document.getElementById('mode-toggle');
@@ -144,6 +166,13 @@ async function fetchLatestSensorData() {
       valMoist.innerText = latest.moisture.toFixed(1);
       valAir.innerText = latest.air_quality.toFixed(1);
       valLight.innerText = latest.light_intensity;
+
+      // Animate Gauges (setting max values for scaling)
+      setGaugeProgress(fillTemp, latest.temperature, 50); // Max temp 50C
+      setGaugeProgress(fillHum, latest.humidity, 100);    // Max hum 100%
+      setGaugeProgress(fillMoist, latest.moisture, 100);  // Max moist 100%
+      setGaugeProgress(fillAir, latest.air_quality, 100); // Assuming mapped 0-100
+      setGaugeProgress(fillLight, latest.light_intensity, 255); // PWM max 255
 
       setConnectionStatus(true);
     }
@@ -284,6 +313,13 @@ function setupRealtime() {
       valMoist.innerText = newRow.moisture.toFixed(1);
       valAir.innerText = newRow.air_quality.toFixed(1);
       valLight.innerText = newRow.light_intensity;
+
+      // Animate Gauges
+      setGaugeProgress(fillTemp, newRow.temperature, 50);
+      setGaugeProgress(fillHum, newRow.humidity, 100);
+      setGaugeProgress(fillMoist, newRow.moisture, 100);
+      setGaugeProgress(fillAir, newRow.air_quality, 100);
+      setGaugeProgress(fillLight, newRow.light_intensity, 255);
 
       // Add to Chart
       updateChart(newRow.timestamp, newRow.temperature, newRow.humidity, newRow.moisture);

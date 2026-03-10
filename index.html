@@ -35,56 +35,131 @@
 
     <main class="content">
 
-      <!-- Top Overview Cards -->
+      <!-- Top Overview Cards (3D Animated Meters) -->
       <section class="metrics-grid">
 
-        <div class="metric-card">
-          <div class="metric-icon temp">
-            <i class="fa-solid fa-temperature-half"></i>
-          </div>
-          <div class="metric-data">
-            <h3>Temperature</h3>
-            <p class="value"><span id="val-temp">--</span>°C</p>
-          </div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon hum">
-            <i class="fa-solid fa-droplet"></i>
-          </div>
-          <div class="metric-data">
-            <h3>Humidity</h3>
-            <p class="value"><span id="val-hum">--</span>%</p>
-          </div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-icon moist">
-            <i class="fa-solid fa-seedling"></i>
-          </div>
-          <div class="metric-data">
-            <h3>Soil Moisture</h3>
-            <p class="value"><span id="val-moist">--</span>%</p>
+        <!-- Temperature Gauge -->
+        <div class="metric-card gauge-card">
+          <h3><i class="fa-solid fa-temperature-half" style="color: var(--accent-temp)"></i> Temperature</h3>
+          <div class="gauge-container">
+            <svg viewBox="0 0 100 100" class="gauge">
+              <defs>
+                <linearGradient id="gradTemp" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#f87171" />
+                  <stop offset="100%" stop-color="#dc2626" />
+                </linearGradient>
+                <filter id="glowTemp" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+              <path class="gauge-bg" d="M 20 80 A 45 45 0 1 1 80 80" />
+              <path class="gauge-fill temp-fill" d="M 20 80 A 45 45 0 1 1 80 80" filter="url(#glowTemp)"
+                stroke="url(#gradTemp)" />
+            </svg>
+            <div class="gauge-value">
+              <span id="val-temp">--</span><span class="unit">°C</span>
+            </div>
           </div>
         </div>
 
-        <div class="metric-card">
-          <div class="metric-icon air">
-            <i class="fa-solid fa-wind"></i>
-          </div>
-          <div class="metric-data">
-            <h3>Air Quality</h3>
-            <p class="value"><span id="val-air">--</span></p>
+        <!-- Humidity Gauge -->
+        <div class="metric-card gauge-card">
+          <h3><i class="fa-solid fa-droplet" style="color: var(--accent-hum)"></i> Humidity</h3>
+          <div class="gauge-container">
+            <svg viewBox="0 0 100 100" class="gauge">
+              <defs>
+                <linearGradient id="gradHum" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#60a5fa" />
+                  <stop offset="100%" stop-color="#2563eb" />
+                </linearGradient>
+                <filter id="glowHum" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+              <path class="gauge-bg" d="M 20 80 A 45 45 0 1 1 80 80" />
+              <path class="gauge-fill hum-fill" d="M 20 80 A 45 45 0 1 1 80 80" filter="url(#glowHum)"
+                stroke="url(#gradHum)" />
+            </svg>
+            <div class="gauge-value">
+              <span id="val-hum">--</span><span class="unit">%</span>
+            </div>
           </div>
         </div>
 
-        <div class="metric-card">
-          <div class="metric-icon light">
-            <i class="fa-solid fa-sun"></i>
+        <!-- Soil Moisture Gauge -->
+        <div class="metric-card gauge-card">
+          <h3><i class="fa-solid fa-seedling" style="color: var(--accent-moist)"></i> Moisture</h3>
+          <div class="gauge-container">
+            <svg viewBox="0 0 100 100" class="gauge">
+              <defs>
+                <linearGradient id="gradMoist" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#34d399" />
+                  <stop offset="100%" stop-color="#059669" />
+                </linearGradient>
+                <filter id="glowMoist" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+              <path class="gauge-bg" d="M 20 80 A 45 45 0 1 1 80 80" />
+              <path class="gauge-fill moist-fill" d="M 20 80 A 45 45 0 1 1 80 80" filter="url(#glowMoist)"
+                stroke="url(#gradMoist)" />
+            </svg>
+            <div class="gauge-value">
+              <span id="val-moist">--</span><span class="unit">%</span>
+            </div>
           </div>
-          <div class="metric-data">
-            <h3>Light Level</h3>
-            <p class="value"><span id="val-light">--</span></p>
+        </div>
+
+        <!-- Air Quality Gauge -->
+        <div class="metric-card gauge-card">
+          <h3><i class="fa-solid fa-wind" style="color: var(--accent-air)"></i> Air Quality</h3>
+          <div class="gauge-container">
+            <svg viewBox="0 0 100 100" class="gauge">
+              <defs>
+                <linearGradient id="gradAir" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#fbbf24" />
+                  <stop offset="100%" stop-color="#d97706" />
+                </linearGradient>
+                <filter id="glowAir" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+              <path class="gauge-bg" d="M 20 80 A 45 45 0 1 1 80 80" />
+              <path class="gauge-fill air-fill" d="M 20 80 A 45 45 0 1 1 80 80" filter="url(#glowAir)"
+                stroke="url(#gradAir)" />
+            </svg>
+            <div class="gauge-value">
+              <span id="val-air">--</span><span class="unit"> AQI</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Light Level Gauge -->
+        <div class="metric-card gauge-card">
+          <h3><i class="fa-solid fa-sun" style="color: var(--accent-light)"></i> Light Level</h3>
+          <div class="gauge-container">
+            <svg viewBox="0 0 100 100" class="gauge">
+              <defs>
+                <linearGradient id="gradLight" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#fef08a" />
+                  <stop offset="100%" stop-color="#eab308" />
+                </linearGradient>
+                <filter id="glowLight" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+              <path class="gauge-bg" d="M 20 80 A 45 45 0 1 1 80 80" />
+              <path class="gauge-fill light-fill" d="M 20 80 A 45 45 0 1 1 80 80" filter="url(#glowLight)"
+                stroke="url(#gradLight)" />
+            </svg>
+            <div class="gauge-value">
+              <span id="val-light">--</span><span class="unit"> lx</span>
+            </div>
           </div>
         </div>
 
