@@ -28,6 +28,9 @@
         <h1>SaffronAI</h1>
       </div>
       <div class="status-indicator">
+        <button id="theme-toggle" class="theme-btn" title="Toggle Light/Dark Mode">
+          <i class="fa-solid fa-sun"></i>
+        </button>
         <div class="dot" id="connection-dot"></div>
         <span id="connection-status">Connecting...</span>
       </div>
@@ -178,6 +181,28 @@
 
         <!-- Right Column: Controls -->
         <section class="controls-section">
+
+          <h2>AI Insights</h2>
+          <div class="control-card ai-card">
+            <div class="ai-header">
+              <div class="ai-title">
+                <i class="fa-solid fa-brain" style="color: var(--accent-hum);"></i>
+                <h3>Mist Prediction</h3>
+              </div>
+              <span id="ai-status-badge" class="badge unk">Awaiting Data...</span>
+            </div>
+
+            <div class="ai-body">
+              <div class="confidence-text">
+                <span>Model Confidence</span>
+                <span id="ai-conf-val">--%</span>
+              </div>
+              <div class="confidence-track">
+                <div class="confidence-fill" id="ai-conf-bar" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+
           <h2>Device Control Panel</h2>
 
           <div class="control-card control-mode">
@@ -215,20 +240,21 @@
 
             <div class="control-item slider-item">
               <div class="control-info">
-                <i class="fa-solid fa-lightbulb"></i>
+                <i class="fa-solid fa-lightbulb" id="light-bulb-icon"></i>
                 <span>Grow Lights <span id="light-val-display">(0)</span></span>
               </div>
               <input type="range" id="light-slider" min="0" max="255" value="0">
             </div>
 
-          </div>
-          <!-- Disabled Overlay -->
-          <div id="auto-overlay" class="disabled-overlay hidden">
-            <div class="overlay-content">
-              <i class="fa-solid fa-robot" style="font-size: 2rem; margin-bottom: 10px;"></i>
-              <p>Devices controlled automatically by sensors.</p>
-              <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 5px;">Switch to MANUAL to override.</p>
+            <!-- Disabled Overlay -->
+            <div id="auto-overlay" class="disabled-overlay hidden">
+              <div class="overlay-content">
+                <i class="fa-solid fa-robot" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                <p>Devices controlled automatically by sensors.</p>
+                <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 5px;">Switch to MANUAL to override.</p>
+              </div>
             </div>
+
           </div>
 
         </section>
@@ -241,7 +267,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Custom App Logic -->
-  <script type="module" src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 
 </html>

@@ -3,7 +3,11 @@ const SUPABASE_URL = 'https://xfpjcpzqeaonidyymqas.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmcGpjcHpxZWFvbmlkeXltcWFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTIzODEsImV4cCI6MjA4ODcyODM4MX0.VKxnxzYxsRG-0ONaN4HigNyApTuVAKaEr8AHb8x2NY8';
 
 // Import initialized Supabase client directly from the global script object injected via script tag.
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false // Prevents crashing on file:/// origins due to localStorage access restrictions
+  }
+});
 
 // ==========================================
 // 2. DOM Elements
@@ -40,12 +44,15 @@ function setGaugeProgress(element, value, max) {
   element.style.strokeDashoffset = offset;
 }
 
-// Controls
+// Controls & UI Elements
+const themeToggleBtn = document.getElementById('theme-toggle');
+const rootElement = document.documentElement;
 const modeToggle = document.getElementById('mode-toggle');
 const btnMist = document.getElementById('btn-mist');
 const btnFan = document.getElementById('btn-fan');
 const lightSlider = document.getElementById('light-slider');
 const lightDisplay = document.getElementById('light-val-display');
+const lightBulbIcon = document.getElementById('light-bulb-icon');
 const autoOverlay = document.getElementById('auto-overlay');
 
 // Local State
@@ -55,6 +62,11 @@ let uiState = {
   cooling_fan: false,
   light_intensity: 0
 };
+
+// AI Elements
+const aiStatusBadge = document.getElementById('ai-status-badge');
+const aiConfVal = document.getElementById('ai-conf-val');
+const aiConfBar = document.getElementById('ai-conf-bar');
 
 // ==========================================
 // 3. Chart.js Setup
@@ -104,8 +116,8 @@ function initChart() {
         legend: { position: 'top' }
       },
       scales: {
-        x: { grid: { color: '#334155' } },
-        y: { grid: { color: '#334155' }, beginAtZero: true }
+        x: { grid: { color: 'rgba(150, 160, 175, 0.2)' } },
+        y: { grid: { color: 'rgba(150, 160, 175, 0.2)' }, beginAtZero: true }
       },
       interaction: {
         mode: 'index',
@@ -135,8 +147,47 @@ function updateChart(timestamp, temp, hum, moist) {
 }
 
 // ==========================================
-// 4. Supabase Data Fetching
+// 4. Supabase Data Fetching & AI Model
 // ==========================================
+async function fetchAIPrediction(temp, hum, moist, aqi) {
+  try {
+    const response = await fetch('http://localhost:8000/predict_mist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        temperature: temp,
+        humidity: hum,
+        soil_moisture: moist,
+        air_quality: aqi
+      })
+    });
+
+    if (!response.ok) throw new Error('API response was not ok');
+
+    const data = await response.json();
+    const isRequired = data.mist_required;
+    const confidence = (data.confidence_score * 100).toFixed(0);
+
+    if (isRequired) {
+      aiStatusBadge.className = 'badge bg-danger';
+      aiStatusBadge.innerText = 'Mist Required';
+    } else {
+      aiStatusBadge.className = 'badge bg-success';
+      aiStatusBadge.innerText = 'Optimal';
+    }
+
+    aiConfVal.innerText = `${confidence}%`;
+    aiConfBar.style.width = `${confidence}%`;
+
+  } catch (err) {
+    console.error("AI Prediction Error:", err);
+    aiStatusBadge.className = 'badge bg-secondary';
+    aiStatusBadge.innerText = 'API Offline';
+    aiConfVal.innerText = '--%';
+    aiConfBar.style.width = '0%';
+  }
+}
+
 async function fetchLatestSensorData() {
   try {
     const { data, error } = await supabase
@@ -173,6 +224,9 @@ async function fetchLatestSensorData() {
       setGaugeProgress(fillMoist, latest.moisture, 100);  // Max moist 100%
       setGaugeProgress(fillAir, latest.air_quality, 100); // Assuming mapped 0-100
       setGaugeProgress(fillLight, latest.light_intensity, 255); // PWM max 255
+
+      // Fetch AI Prediction
+      fetchAIPrediction(latest.temperature, latest.humidity, latest.moisture, latest.air_quality);
 
       setConnectionStatus(true);
     }
@@ -232,6 +286,7 @@ function syncUIWithState() {
   // Slider
   lightSlider.value = uiState.light_intensity;
   lightDisplay.innerText = `(${uiState.light_intensity})`;
+  updateLightGlow(uiState.light_intensity);
 }
 
 function updateToggleButton(btnElement, isOn) {
@@ -244,7 +299,46 @@ function updateToggleButton(btnElement, isOn) {
   }
 }
 
+function updateLightGlow(value) {
+  if(!lightBulbIcon) return;
+  const intensity = value / 255;
+  if(value > 0) {
+    lightBulbIcon.style.color = '#fcd34d'; // bright yellow
+    // Use an aggressive drop-shadow and text-shadow to make it physically glow
+    const shadowIntensity = Math.min(intensity * 20, 20); // 0 to 20px
+    lightBulbIcon.style.filter = `drop-shadow(0 0 ${shadowIntensity}px rgba(252, 211, 77, 1)) drop-shadow(0 0 ${shadowIntensity/2}px rgba(252, 211, 77, 1))`;
+    lightBulbIcon.style.textShadow = `0 0 ${shadowIntensity}px rgba(252, 211, 77, 1)`;
+  } else {
+    // Reset to CSS default using empty string
+    lightBulbIcon.style.color = '';
+    lightBulbIcon.style.filter = '';
+    lightBulbIcon.style.textShadow = '';
+  }
+}
+
 // Event Listeners for pure UI updates (doesn't hit DB yet)
+themeToggleBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  const currentTheme = rootElement.getAttribute('data-theme');
+  if (currentTheme === 'light') {
+    // Switch to dark (default)
+    rootElement.removeAttribute('data-theme');
+    themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+  } else {
+    // Switch to light
+    rootElement.setAttribute('data-theme', 'light');
+    themeToggleBtn.innerHTML = '<i class="fa-solid fa-moon"></i>';
+  }
+});
+
+// Click the overlay to instantly switch to MANUAL mode
+autoOverlay.addEventListener('click', () => {
+  uiState.mode = 'MANUAL';
+  modeToggle.checked = true; // visually update switch
+  autoOverlay.classList.add('hidden');
+  syncStateToDB();
+});
+
 modeToggle.addEventListener('change', (e) => {
   uiState.mode = e.target.checked ? 'MANUAL' : 'AUTO';
   if (!e.target.checked) {
@@ -270,6 +364,7 @@ btnFan.addEventListener('click', () => {
 lightSlider.addEventListener('input', (e) => {
   uiState.light_intensity = parseInt(e.target.value);
   lightDisplay.innerText = `(${uiState.light_intensity})`;
+  updateLightGlow(uiState.light_intensity);
 });
 
 lightSlider.addEventListener('change', () => {
@@ -294,7 +389,6 @@ async function syncStateToDB() {
     console.log("State synced to Supabase successfully.");
   } catch (err) {
     console.error("DB Update Error", err);
-    alert("Failed to sync device controls. If using Anon key, please ensure RLS allows anonymous inserts in Supabase.");
   }
 }
 
@@ -323,6 +417,9 @@ function setupRealtime() {
 
       // Add to Chart
       updateChart(newRow.timestamp, newRow.temperature, newRow.humidity, newRow.moisture);
+
+      // Fetch AI Prediction
+      fetchAIPrediction(newRow.temperature, newRow.humidity, newRow.moisture, newRow.air_quality);
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'device_control' }, (payload) => {
       // Update UI if a change was made elsewhere (e.g. by another dashboard user)
