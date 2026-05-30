@@ -2,12 +2,10 @@
 const SUPABASE_URL = 'https://xfpjcpzqeaonidyymqas.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmcGpjcHpxZWFvbmlkeXltcWFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTIzODEsImV4cCI6MjA4ODcyODM4MX0.VKxnxzYxsRG-0ONaN4HigNyApTuVAKaEr8AHb8x2NY8';
 
-// Import initialized Supabase client directly from the global script object injected via script tag.
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: false // Prevents crashing on file:/// origins due to localStorage access restrictions
-  }
-});
+console.log("Saffron App Script Started");
+
+// Client defined globally but initialized in init()
+let supabase;
 
 // ==========================================
 // 2. DOM Elements
@@ -15,36 +13,18 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 const connDot = document.getElementById('connection-dot');
 const connStatus = document.getElementById('connection-status');
 
-// Metrics (SVG Fills)
 const fillTemp = document.querySelector('.temp-fill');
 const fillHum = document.querySelector('.hum-fill');
 const fillMoist = document.querySelector('.moist-fill');
 const fillAir = document.querySelector('.air-fill');
 const fillLight = document.querySelector('.light-fill');
 
-// Metrics (Values)
 const valTemp = document.getElementById('val-temp');
 const valHum = document.getElementById('val-hum');
 const valMoist = document.getElementById('val-moist');
 const valAir = document.getElementById('val-air');
 const valLight = document.getElementById('val-light');
 
-// Helper to set SVG gauge progress (0 to 1 scaling)
-// Our SVG dasharray is ~141.37 for a half circle (pi * r), but set to 200 in CSS for simplicity
-// The actual stroke length for A 45 45 is Math.PI * 45 = 141.37
-const GAUGE_LENGTH = 142;
-
-function setGaugeProgress(element, value, max) {
-  if (!element) return;
-  // clamp value
-  let pct = Math.min(Math.max(value / max, 0), 1);
-  // calculate offset (142 is empty, 0 is full)
-  let offset = GAUGE_LENGTH - (pct * GAUGE_LENGTH);
-  element.style.strokeDasharray = GAUGE_LENGTH;
-  element.style.strokeDashoffset = offset;
-}
-
-// Controls & UI Elements
 const themeToggleBtn = document.getElementById('theme-toggle');
 const rootElement = document.documentElement;
 const modeToggle = document.getElementById('mode-toggle');
@@ -55,79 +35,92 @@ const lightDisplay = document.getElementById('light-val-display');
 const lightBulbIcon = document.getElementById('light-bulb-icon');
 const autoOverlay = document.getElementById('auto-overlay');
 
-// Local State
+const aiStatusBadge = document.getElementById('ai-status-badge');
+const aiConfVal = document.getElementById('ai-conf-val');
+const aiConfBar = document.getElementById('ai-conf-bar');
+
+const GAUGE_LENGTH = 142;
+
 let uiState = {
-  mode: 'AUTO', // default
+  mode: 'AUTO', 
   mist_maker: false,
   cooling_fan: false,
   light_intensity: 0
 };
 
-// AI Elements
-const aiStatusBadge = document.getElementById('ai-status-badge');
-const aiConfVal = document.getElementById('ai-conf-val');
-const aiConfBar = document.getElementById('ai-conf-bar');
-
 // ==========================================
 // 3. Chart.js Setup
 // ==========================================
-const ctx = document.getElementById('envChart').getContext('2d');
+const canvas = document.getElementById('envChart');
 let envChart;
-const maxDataPoints = 20; // Keep chart clean
+const maxDataPoints = 20;
+
+function setGaugeProgress(element, value, max) {
+  if (!element) return;
+  let pct = Math.min(Math.max(value / max, 0), 1);
+  let offset = GAUGE_LENGTH - (pct * GAUGE_LENGTH);
+  element.style.strokeDasharray = GAUGE_LENGTH;
+  element.style.strokeDashoffset = offset;
+}
 
 function initChart() {
-  Chart.defaults.color = '#94a3b8';
-  Chart.defaults.font.family = 'Inter';
+  console.log("Initializing Chart...");
+  if (!canvas) {
+    console.error("Canvas 'envChart' not found!");
+    return;
+  }
+  try {
+    const ctx = canvas.getContext('2d');
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = 'Inter';
 
-  envChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: 'Temperature (°C)',
-          borderColor: '#ef4444',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          data: [],
-          tension: 0.4,
-          fill: true
-        },
-        {
-          label: 'Humidity (%)',
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          data: [],
-          tension: 0.4,
-          fill: true
-        },
-        {
-          label: 'Soil Moisture (%)',
-          borderColor: '#10b981',
-          data: [],
-          tension: 0.4,
-          borderDash: [5, 5]
+    envChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Temp (°C)',
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            data: [],
+            tension: 0.7,
+            fill: true
+          },
+          {
+            label: 'Hum (%)',
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            data: [],
+            tension: 0.4,
+            fill: true
+          },
+          {
+            label: 'Moisture (%)',
+            borderColor: '#10b981',
+            data: [],
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          x: { grid: { color: 'rgba(150, 160, 175, 0.1)' } },
+          y: { grid: { color: 'rgba(150, 160, 175, 0.1)' }, beginAtZero: true }
         }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top' }
-      },
-      scales: {
-        x: { grid: { color: 'rgba(150, 160, 175, 0.2)' } },
-        y: { grid: { color: 'rgba(150, 160, 175, 0.2)' }, beginAtZero: true }
-      },
-      interaction: {
-        mode: 'index',
-        intersect: false,
       }
-    }
-  });
+    });
+    console.log("Chart initialized successfully.");
+  } catch (err) {
+    console.error("Chart initialization failed:", err);
+  }
 }
 
 function updateChart(timestamp, temp, hum, moist) {
+  if (!envChart) return;
   const timeLabel = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   envChart.data.labels.push(timeLabel);
@@ -135,23 +128,19 @@ function updateChart(timestamp, temp, hum, moist) {
   envChart.data.datasets[1].data.push(hum);
   envChart.data.datasets[2].data.push(moist);
 
-  // Keep array within max limits
   if (envChart.data.labels.length > maxDataPoints) {
     envChart.data.labels.shift();
-    envChart.data.datasets[0].data.shift();
-    envChart.data.datasets[1].data.shift();
-    envChart.data.datasets[2].data.shift();
+    envChart.data.datasets.forEach(ds => ds.data.shift());
   }
-
   envChart.update();
 }
 
 // ==========================================
-// 4. Supabase Data Fetching & AI Model
+// 4. Data Operations
 // ==========================================
 async function fetchAIPrediction(temp, hum, moist, aqi) {
   try {
-    const response = await fetch('http://localhost:8000/predict_mist', {
+    const response = await fetch('/predict_mist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -162,47 +151,47 @@ async function fetchAIPrediction(temp, hum, moist, aqi) {
       })
     });
 
-    if (!response.ok) throw new Error('API response was not ok');
+    if (!response.ok) throw new Error('API offline');
 
     const data = await response.json();
     const isRequired = data.mist_required;
     const confidence = (data.confidence_score * 100).toFixed(0);
 
-    if (isRequired) {
-      aiStatusBadge.className = 'badge bg-danger';
-      aiStatusBadge.innerText = 'Mist Required';
-    } else {
-      aiStatusBadge.className = 'badge bg-success';
-      aiStatusBadge.innerText = 'Optimal';
-    }
-
+    aiStatusBadge.className = isRequired ? 'badge bg-danger' : 'badge bg-success';
+    aiStatusBadge.innerText = isRequired ? 'Mist Required' : 'Optimal';
     aiConfVal.innerText = `${confidence}%`;
     aiConfBar.style.width = `${confidence}%`;
 
   } catch (err) {
-    console.error("AI Prediction Error:", err);
     aiStatusBadge.className = 'badge bg-secondary';
-    aiStatusBadge.innerText = 'API Offline';
+    aiStatusBadge.innerText = 'AI Offline';
     aiConfVal.innerText = '--%';
     aiConfBar.style.width = '0%';
   }
 }
 
 async function fetchLatestSensorData() {
+  if (!supabase) {
+    console.error("Fetch skipped: Supabase not initialized.");
+    return;
+  }
+  console.log("Fetching latest sensor data from Supabase...");
   try {
     const { data, error } = await supabase
       .from('sensor_data')
       .select('*')
       .order('timestamp', { ascending: false })
-      .limit(10); // Fetch last 10 points to populate chart initially
+      .limit(10);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase Select Error:", error);
+      return;
+    }
+
+    console.log("Sensor data reply received:", data);
 
     if (data && data.length > 0) {
-      // Data is descending. For chart, we want oldest first (ascending)
       const chartData = [...data].reverse();
-
-      // Clear existing chart data before rendering history
       envChart.data.labels = [];
       envChart.data.datasets.forEach(ds => ds.data = []);
 
@@ -210,33 +199,31 @@ async function fetchLatestSensorData() {
         updateChart(row.timestamp, row.temperature, row.humidity, row.moisture);
       });
 
-      // Update Top Metrics with the most recent row (data[0])
       const latest = data[0];
       valTemp.innerText = latest.temperature.toFixed(1);
       valHum.innerText = latest.humidity.toFixed(1);
       valMoist.innerText = latest.moisture.toFixed(1);
       valAir.innerText = latest.air_quality.toFixed(1);
-      valLight.innerText = latest.light_intensity;
+      valLight.innerText = latest.light_intensity || 0;
 
-      // Animate Gauges (setting max values for scaling)
-      setGaugeProgress(fillTemp, latest.temperature, 50); // Max temp 50C
-      setGaugeProgress(fillHum, latest.humidity, 100);    // Max hum 100%
-      setGaugeProgress(fillMoist, latest.moisture, 100);  // Max moist 100%
-      setGaugeProgress(fillAir, latest.air_quality, 100); // Assuming mapped 0-100
-      setGaugeProgress(fillLight, latest.light_intensity, 255); // PWM max 255
+      setGaugeProgress(fillTemp, latest.temperature, 50);
+      setGaugeProgress(fillHum, latest.humidity, 100);
+      setGaugeProgress(fillMoist, latest.moisture, 100);
+      setGaugeProgress(fillAir, latest.air_quality, 100);
+      setGaugeProgress(fillLight, latest.light_intensity || 0, 255);
 
-      // Fetch AI Prediction
       fetchAIPrediction(latest.temperature, latest.humidity, latest.moisture, latest.air_quality);
-
-      setConnectionStatus(true);
+    } else {
+      console.warn("Sensor data table is empty.");
     }
   } catch (err) {
-    console.error("Error fetching sensor data:", err);
-    setConnectionStatus(false);
+    console.error("Fatal error in fetchLatestSensorData:", err);
   }
 }
 
 async function fetchLatestControlState() {
+  if (!supabase) return;
+  console.log("Fetching control state...");
   try {
     const { data, error } = await supabase
       .from('device_control')
@@ -244,24 +231,23 @@ async function fetchLatestControlState() {
       .order('timestamp', { ascending: false })
       .limit(1);
 
-    if (error) throw error;
+    if (error) {
+       console.error("Supabase Control Fetch Error:", error);
+       return;
+    }
 
     if (data && data.length > 0) {
       const state = data[0];
-
-      // Update local state
       uiState = {
-        mode: state.mode,
+        mode: state.mode || 'AUTO',
         mist_maker: state.mist_maker,
         cooling_fan: state.cooling_fan,
         light_intensity: state.light_intensity
       };
-
-      // Update UI
       syncUIWithState();
     }
   } catch (err) {
-    console.error("Error fetching control state:", err);
+    console.error("Fatal error in fetchLatestControlState:", err);
   }
 }
 
@@ -269,27 +255,25 @@ async function fetchLatestControlState() {
 // 5. Control UI Logic
 // ==========================================
 function syncUIWithState() {
-  // Mode switch
   const isAuto = (uiState.mode === 'AUTO');
-  modeToggle.checked = !isAuto; // Checkbox checked = MANUAL based on our UI label
-
+  modeToggle.checked = !isAuto;
+  
   if (isAuto) {
     autoOverlay.classList.remove('hidden');
   } else {
     autoOverlay.classList.add('hidden');
   }
 
-  // Buttons
   updateToggleButton(btnMist, uiState.mist_maker);
   updateToggleButton(btnFan, uiState.cooling_fan);
 
-  // Slider
   lightSlider.value = uiState.light_intensity;
   lightDisplay.innerText = `(${uiState.light_intensity})`;
   updateLightGlow(uiState.light_intensity);
 }
 
 function updateToggleButton(btnElement, isOn) {
+  if (!btnElement) return;
   if (isOn) {
     btnElement.classList.replace('off', 'on');
     btnElement.innerText = 'ON';
@@ -303,49 +287,52 @@ function updateLightGlow(value) {
   if(!lightBulbIcon) return;
   const intensity = value / 255;
   if(value > 0) {
-    lightBulbIcon.style.color = '#fcd34d'; // bright yellow
-    // Use an aggressive drop-shadow and text-shadow to make it physically glow
-    const shadowIntensity = Math.min(intensity * 20, 20); // 0 to 20px
-    lightBulbIcon.style.filter = `drop-shadow(0 0 ${shadowIntensity}px rgba(252, 211, 77, 1)) drop-shadow(0 0 ${shadowIntensity/2}px rgba(252, 211, 77, 1))`;
-    lightBulbIcon.style.textShadow = `0 0 ${shadowIntensity}px rgba(252, 211, 77, 1)`;
+    lightBulbIcon.style.color = '#fcd34d';
+    const shadowIntensity = Math.min(intensity * 20, 20);
+    lightBulbIcon.style.filter = `drop-shadow(0 0 ${shadowIntensity}px rgba(252, 211, 77, 1))`;
   } else {
-    // Reset to CSS default using empty string
     lightBulbIcon.style.color = '';
     lightBulbIcon.style.filter = '';
-    lightBulbIcon.style.textShadow = '';
   }
 }
 
-// Event Listeners for pure UI updates (doesn't hit DB yet)
+async function syncStateToDB() {
+  if (!supabase) return;
+  try {
+    const { error } = await supabase
+      .from('device_control')
+      .insert([uiState]);
+    if (error) throw error;
+    console.log("Device control synced.");
+  } catch (err) {
+    console.error("DB Update Error:", err);
+  }
+}
+
+// ==========================================
+// 6. Theme and Interaction
+// ==========================================
 themeToggleBtn.addEventListener('click', (e) => {
   e.preventDefault();
-  const currentTheme = rootElement.getAttribute('data-theme');
-  if (currentTheme === 'light') {
-    // Switch to dark (default)
+  const isLight = rootElement.getAttribute('data-theme') === 'light';
+  if (isLight) {
     rootElement.removeAttribute('data-theme');
     themeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
   } else {
-    // Switch to light
     rootElement.setAttribute('data-theme', 'light');
     themeToggleBtn.innerHTML = '<i class="fa-solid fa-moon"></i>';
   }
 });
 
-// Click the overlay to instantly switch to MANUAL mode
 autoOverlay.addEventListener('click', () => {
   uiState.mode = 'MANUAL';
-  modeToggle.checked = true; // visually update switch
-  autoOverlay.classList.add('hidden');
+  syncUIWithState();
   syncStateToDB();
 });
 
 modeToggle.addEventListener('change', (e) => {
   uiState.mode = e.target.checked ? 'MANUAL' : 'AUTO';
-  if (!e.target.checked) {
-    autoOverlay.classList.remove('hidden');
-  } else {
-    autoOverlay.classList.add('hidden');
-  }
+  syncUIWithState();
   syncStateToDB();
 });
 
@@ -371,92 +358,96 @@ lightSlider.addEventListener('change', () => {
   syncStateToDB();
 });
 
-// Write to DB instantly
-async function syncStateToDB() {
-  try {
-    const { error } = await supabase
-      .from('device_control')
-      .insert([
-        {
-          mode: uiState.mode,
-          mist_maker: uiState.mist_maker,
-          cooling_fan: uiState.cooling_fan,
-          light_intensity: uiState.light_intensity
-        }
-      ]);
-
-    if (error) throw error;
-    console.log("State synced to Supabase successfully.");
-  } catch (err) {
-    console.error("DB Update Error", err);
-  }
-}
-
 // ==========================================
-// 6. Real-time Subscriptions (WebSockets)
+// 7. Realtime Setup
 // ==========================================
 function setupRealtime() {
-  const channel = supabase.channel('table-db-changes')
+  if (!supabase) return;
+  console.log("Setting up Supabase Realtime Channels...");
+  
+  const channel = supabase.channel('realtime_saffron')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data' }, (payload) => {
-      // New sensor logic arrived
-      const newRow = payload.new;
+      console.log("Realtime: New sensor data!", payload.new);
+      const row = payload.new;
+      valTemp.innerText = row.temperature.toFixed(1);
+      valHum.innerText = row.humidity.toFixed(1);
+      valMoist.innerText = row.moisture.toFixed(1);
+      valAir.innerText = row.air_quality.toFixed(1);
+      valLight.innerText = row.light_intensity || 0;
 
-      // Update Top Metrics UI
-      valTemp.innerText = newRow.temperature.toFixed(1);
-      valHum.innerText = newRow.humidity.toFixed(1);
-      valMoist.innerText = newRow.moisture.toFixed(1);
-      valAir.innerText = newRow.air_quality.toFixed(1);
-      valLight.innerText = newRow.light_intensity;
+      setGaugeProgress(fillTemp, row.temperature, 50);
+      setGaugeProgress(fillHum, row.humidity, 100);
+      setGaugeProgress(fillMoist, row.moisture, 100);
+      setGaugeProgress(fillAir, row.air_quality, 100);
+      setGaugeProgress(fillLight, row.light_intensity || 0, 255);
 
-      // Animate Gauges
-      setGaugeProgress(fillTemp, newRow.temperature, 50);
-      setGaugeProgress(fillHum, newRow.humidity, 100);
-      setGaugeProgress(fillMoist, newRow.moisture, 100);
-      setGaugeProgress(fillAir, newRow.air_quality, 100);
-      setGaugeProgress(fillLight, newRow.light_intensity, 255);
-
-      // Add to Chart
-      updateChart(newRow.timestamp, newRow.temperature, newRow.humidity, newRow.moisture);
-
-      // Fetch AI Prediction
-      fetchAIPrediction(newRow.temperature, newRow.humidity, newRow.moisture, newRow.air_quality);
+      updateChart(row.timestamp, row.temperature, row.humidity, row.moisture);
+      fetchAIPrediction(row.temperature, row.humidity, row.moisture, row.air_quality);
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'device_control' }, (payload) => {
-      // Update UI if a change was made elsewhere (e.g. by another dashboard user)
+      console.log("Realtime: New control state!", payload.new);
       const state = payload.new;
-
       uiState = {
-        mode: state.mode,
+        mode: state.mode || 'AUTO',
         mist_maker: state.mist_maker,
         cooling_fan: state.cooling_fan,
         light_intensity: state.light_intensity
       };
-
       syncUIWithState();
     })
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        setConnectionStatus(true);
-      }
+      console.log("Realtime Subscription Status:", status);
+      setConnectionStatus(status === 'SUBSCRIBED');
     });
 }
 
 function setConnectionStatus(isConnected) {
-  if (isConnected) {
-    connDot.className = 'dot connected';
-    connStatus.innerText = 'Connected Live';
-  } else {
-    connDot.className = 'dot error';
-    connStatus.innerText = 'Disconnected';
-  }
+  console.log(`Setting connection status: ${isConnected ? 'LIVE' : 'CONNECTING'}`);
+  if (!connDot || !connStatus) return;
+  connDot.className = isConnected ? 'dot connected' : 'dot error';
+  connStatus.innerText = isConnected ? 'Connected Live' : 'Connecting...';
 }
 
 // ==========================================
-// Initialization
+// 8. Initialization
 // ==========================================
-window.addEventListener('DOMContentLoaded', () => {
+function init() {
+  console.log("Starting Initialization...");
+  
+  // Initialize Supabase
+  try {
+    if (window.supabase) {
+      console.log("Supabase library found on window object.");
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: false }
+      });
+      console.log("Supabase client created.");
+    } else {
+      console.error("Supabase library NOT found on window object. Check your script tags.");
+    }
+  } catch (err) {
+    console.error("Supabase creation failed:", err);
+  }
+
   initChart();
-  fetchLatestSensorData();
-  fetchLatestControlState();
-  setupRealtime();
-});
+  
+  if (supabase) {
+    fetchLatestSensorData();
+    fetchLatestControlState();
+    setupRealtime();
+  } else {
+    console.error("Initialization halted: Supabase client is null.");
+  }
+}
+
+// Robust execution
+console.log("Checking document readyState:", document.readyState);
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    console.log("Document already ready, starting init immediately.");
+    init();
+} else {
+    console.log("Waiting for DOMContentLoaded event.");
+    document.addEventListener('DOMContentLoaded', init);
+}
+
+

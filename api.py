@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
@@ -16,7 +18,7 @@ app = FastAPI(
 # Enable CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, replace "*" with your frontend's exact origin
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,74 +37,54 @@ except Exception as e:
     model = None
     print(f"Error loading model: {e}")
 
-# Define the input data schema using Pydantic
+# Define the input data schema
 class SensorData(BaseModel):
     temperature: float
     humidity: float
     soil_moisture: float
     air_quality: float
 
-    # Provide an example for the Swagger documentation (/docs)
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "temperature": 22.5,
-                "humidity": 40.0,
-                "soil_moisture": 25.0,
-                "air_quality": 85.0
-            }
-        }
-
 # Define the prediction endpoint
 @app.post("/predict_mist")
 async def predict_mist_requirement(data: SensorData):
-    """
-    Takes sensor readings and predicts whether the mist maker should be turned on.
-    Returns {"mist_required": True/False, "confidence": float}
-    """
     if model is None:
-        raise HTTPException(status_code=500, detail="Machine learning model is not loaded. Train the model first.")
-
+        raise HTTPException(status_code=500, detail="Model not loaded")
     try:
-        # Convert input data to the format expected by the model (DataFrame)
-        input_df = pd.DataFrame([{
-            'temperature': data.temperature,
-            'humidity': data.humidity,
-            'soil_moisture': data.soil_moisture,
-            'air_quality': data.air_quality
-        }])
-
-        # Make prediction
+        input_df = pd.DataFrame([data.dict()])
         prediction = model.predict(input_df)[0]
-        
-        # Get prediction probabilities (confidence score)
         probabilities = model.predict_proba(input_df)[0]
         confidence = float(max(probabilities))
-
-        # Convert numpy int to Python bool
-        is_required = bool(prediction == 1)
-
         return {
             "prediction_status": "success",
-            "mist_required": is_required,
-            "confidence_score": round(confidence, 4),
-            "inputs_received": data.dict()
+            "mist_required": bool(prediction == 1),
+            "confidence_score": round(confidence, 4)
         }
-
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# Root endpoint for health check
+# Root endpoint – serves the dashboard UI
 @app.get("/")
-async def root():
-    return {
-        "status": "online",
-        "service": "Saffron Smart Farming ML API",
-        "model_loaded": model is not None
-    }
+async def serve_dashboard():
+    index_path = os.path.join(os.getcwd(), "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"error": "index.html not found"}
+
+# Explicit routes for common assets with correct MIME types
+@app.get("/style.css")
+async def serve_css():
+    return FileResponse("style.css", media_type="text/css")
+
+@app.get("/app.js")
+async def serve_js():
+    return FileResponse("app.js", media_type="application/javascript")
+
+# Mount static files just in case
+@app.get("/dashboard_app.js")
+async def serve_dashboard_js():
+    return FileResponse("dashboard_app.js", media_type="application/javascript")
+
+app.mount("/static", StaticFiles(directory="."), name="static")
 
 if __name__ == "__main__":
-    # Run the server on port 8000
-    print("Starting Saffron ML API Server...")
-    print("Documentation available at: http://localhost:8000/docs")
     uvicorn.run(app, host="0.0.0.0", port=8000)

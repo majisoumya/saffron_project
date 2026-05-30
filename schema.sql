@@ -31,12 +31,12 @@ CREATE POLICY "Enable read access for all users" ON public.sensor_data
 CREATE POLICY "Enable read access for all users" ON public.device_control
     FOR SELECT USING (true);
 
--- Example: Allow authenticated users to insert data (e.g. your IoT devices if they authenticate)
-CREATE POLICY "Enable insert access for authenticated users" ON public.sensor_data
-    FOR INSERT TO authenticated WITH CHECK (true);
+-- Example: Allow both authenticated and anonymous users to insert data (e.g. your IoT devices)
+CREATE POLICY "Enable insert access for all users" ON public.sensor_data
+    FOR INSERT TO anon, authenticated WITH CHECK (true);
 
-CREATE POLICY "Enable insert access for authenticated users" ON public.device_control
-    FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Enable insert access for all users" ON public.device_control
+    FOR INSERT TO anon, authenticated WITH CHECK (true);
     
 -- Note: You may want to create an index on the timestamp columns for faster timeseries queries
 CREATE INDEX idx_sensor_data_timestamp ON public.sensor_data (timestamp DESC);

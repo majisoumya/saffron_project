@@ -1,4 +1,5 @@
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <DHT.h>
 #include <ArduinoJson.h> // Highly recommended for JSON parsing/creation
@@ -147,15 +148,20 @@ void connectWiFi() {
     Serial.print(".");
   }
   Serial.println("\nConnected to WiFi!");
+  Serial.print("Local IP: ");
+  Serial.println(WiFi.localIP());
 }
 
 void fetchDeviceControl() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
+    WiFiClientSecure client;
+    client.setInsecure(); // Skip SSL certificate verification for testing
+    
     // Fetch latest command, ordered by timestamp descending, limit to 1 row
     String url = String(supabase_url) + "/device_control?select=*&order=timestamp.desc&limit=1";
     
-    http.begin(url);
+    http.begin(client, url);
     http.addHeader("apikey", supabase_anon_key);
     http.addHeader("Authorization", String("Bearer ") + supabase_anon_key);
     http.addHeader("Content-Type", "application/json");
@@ -186,8 +192,10 @@ void fetchDeviceControl() {
         }
       }
     } else {
-      Serial.print("Error on HTTP Request (GET Control): ");
-      Serial.println(httpResponseCode);
+      Serial.print("Error on GET Control: ");
+      Serial.print(httpResponseCode);
+      Serial.print(" | Error: ");
+      Serial.println(http.errorToString(httpResponseCode).c_str());
     }
     http.end();
   }
@@ -196,9 +204,12 @@ void fetchDeviceControl() {
 void sendSensorData(float temp, float hum, float moisture, float air, int light) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
+    WiFiClientSecure client;
+    client.setInsecure(); // Skip SSL certificate verification
+    
     String url = String(supabase_url) + "/sensor_data";
     
-    http.begin(url);
+    http.begin(client, url);
     http.addHeader("apikey", supabase_anon_key);
     http.addHeader("Authorization", String("Bearer ") + supabase_anon_key);
     http.addHeader("Content-Type", "application/json");
@@ -218,11 +229,17 @@ void sendSensorData(float temp, float hum, float moisture, float air, int light)
     int httpResponseCode = http.POST(requestBody);
     
     if (httpResponseCode > 0) {
-      Serial.print("Sensor data sent. HTTP Response: ");
+      Serial.print("Sensor data Status: ");
       Serial.println(httpResponseCode);
+      if (httpResponseCode != 201) {
+          Serial.println("Warning: Data might not have been created!");
+          Serial.println(http.getString()); // Print body if not 201
+      }
     } else {
       Serial.print("Error sending sensor data: ");
-      Serial.println(httpResponseCode);
+      Serial.print(httpResponseCode);
+      Serial.print(" | Error: ");
+      Serial.println(http.errorToString(httpResponseCode).c_str());
     }
     http.end();
   }
