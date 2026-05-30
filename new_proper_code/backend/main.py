@@ -143,7 +143,7 @@ def get_metrics():
     Computes real metrics by loading datasets for all models out of ml_model/datasets
     to show accurate info on the front end. Evaluates on a test split to match the notebook's actual data.
     """
-    datasets_dir = r"c:\Users\soumy\OneDrive\Desktop\saffron_project\new_proper_code\ml_model\datasets"
+    datasets_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml_model", "datasets")
     phases = ["phase1", "phase2", "phase3", "phase4"]
     metrics_data = []
 
