@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
 import joblib
@@ -290,6 +291,11 @@ def get_history(phase: str = "phase1"):
 # Mount the static frontend directory to the root path
 # We do this after all API routes so they are evaluated first
 frontend_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend")
+
+@app.get("/")
+async def serve_index():
+    return FileResponse(os.path.join(frontend_path, "index.html"))
+
 app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 if __name__ == "__main__":
