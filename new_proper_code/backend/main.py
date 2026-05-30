@@ -296,6 +296,18 @@ frontend_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "
 async def serve_index():
     return FileResponse(os.path.join(frontend_path, "index.html"))
 
+@app.get("/analysis")
+async def serve_analysis():
+    return FileResponse(os.path.join(frontend_path, "analysis.html"))
+
+@app.get("/models")
+async def serve_models():
+    return FileResponse(os.path.join(frontend_path, "models.html"))
+
+@app.get("/reports")
+async def serve_reports():
+    return FileResponse(os.path.join(frontend_path, "reports.html"))
+
 app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
 if __name__ == "__main__":
